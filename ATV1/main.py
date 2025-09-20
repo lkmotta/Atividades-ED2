@@ -2,6 +2,15 @@ import sys
 from time import time
 from random import randint as rdi
 
+
+# falta:
+# contagem de comparação
+# excluir comentarios do output do bonfim
+# algoritmo extra
+#
+
+
+
 def main():
     if len(sys.argv) != 3:
         print("\033[1;91mERRO\033[1;30m\nO comando de execução deve ser\033[m: python main.py <arq_entrada> <arq_saida>")
@@ -50,8 +59,67 @@ def main():
         
         print(f"\nLista inicial ({letra_modo}): {lista}\n")
 
-        with open(arq_output, 'w') as outfile:
-            outfile.write(lista.__str__() + '\n')
+        # teste: ========= Chamada dos algarismos de ordenação =========
+
+        # ----> Bubble Sort <----
+        '''
+        lista_buble = lista             
+        comp_bubble = 0
+        t0 = time()
+        bubble_sort(lista_buble, True)
+        t1 = time()
+        tempo_bubble = (t1 - t0) * 1000
+        '''
+        # teste: ========= escrita no output =========
+        '''
+        bubble = "Bubble Sort"
+
+        with open (arq_output, "w") as arquivo:
+            arquivo.write(f"|| {bubble:<20} |   {lista_buble}   | {comp_bubble:>5} -> Comp | {tempo_bubble:>8.3f}ms ||\n")
+        '''
+
+        # ==================================================
+        # --> saida feita pelo gemini/bonfim :D
+        # ==================================================
+
+        metodos = [
+            ("Bubble Sort", bubble_sort),
+            ("Selection Sort", selection_sort),
+            ("Insertion Sort", insertion_sort),
+            ("Merge Sort", merge_sort),
+            ("Quick Sort", quick_sort),
+            ("Heap Sort", heap_sort)
+        ]
+
+        resultados = []
+
+        # percorre lista de metodos e coloca as respostas
+        for nome, funcao in metodos:
+            lista_copia = lista.copy()
+            t0 = time()
+            if nome == "Merge Sort" or nome == "Quick Sort":
+                funcao(lista_copia, 0, len(lista_copia)-1, True)
+            else:
+                funcao(lista_copia, True)
+            t1 = time()
+            tempo = (t1 - t0) * 1000
+            resultados.append((nome, lista_copia, 0, tempo))  # 0 para comparações (adicione se quiser)
+
+
+        # esse eu admito q n entendi como ele fez
+        largura_lista = max(len(str(lista_ord)) for _, lista_ord, _, _ in resultados)
+
+        # abre o output para escrita
+        with open(arq_output, "w") as arquivo:
+            arquivo.write(f"---> Lista inicial ({letra_modo}): {lista} \n \n")
+            arquivo.write(f"|| {'METODO':^20} |   {'LISTA ORDENADA':^{largura_lista}}   | {'COMPARACOES':^13} | {'TEMPO':^10} ||\n")
+            for nome, lista_ord, comp, tempo in resultados:
+                cabecalho = f"|| {nome:<20} |   {lista_ord}   | {comp:>5} -> Comp | {tempo:>8.3f}ms ||"
+                linha = "=" * (len(cabecalho) - 2) + "||"
+                arquivo.write(linha + "\n")
+                arquivo.write(cabecalho + "\n")
+            arquivo.write(linha + "\n")
+
 
     except Exception as e:
         print(f"\033[1;91mERRO\033[1;30m\n{e}\033[m")
@@ -246,7 +314,7 @@ def heap_sort(lista:list, modo:bool=True) -> None:
     """
     build_max_heap(lista, modo)
     
-    tamanho_heap = len(lista)-1
+    tamanho_heap = len(lista)
 
     for i in range(len(lista)-1, 0, -1):
         # removendo o elemento da primeira posição
