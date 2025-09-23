@@ -2,8 +2,6 @@ import sys
 from time import time
 from random import randint as rdi
 
-# falta:
-# algoritmo extra
 
 def main():
     if len(sys.argv) != 3:
@@ -26,6 +24,10 @@ def main():
         linhas = data.splitlines()
         if(not linhas[0].isdigit()):
             print(f"\033[1;91mERRO\033[1;30m\nA primeira linha do arquivo '{arq_input}' deve conter um número inteiro válido.\033[m")
+            return
+        
+        if(len(linhas) > 2): 
+            print(f"\033[1;91mERRO\033[1;30m\nO arquivo '{arq_input}' possui mais de duas linhas (Arquivo fora do padrão).\033[m")
             return
         
         n = int(linhas[0])
@@ -59,7 +61,8 @@ def main():
             ("Insertion Sort", insertion_sort),
             ("Merge Sort", merge_sort),
             ("Quick Sort", quick_sort),
-            ("Heap Sort", heap_sort)
+            ("Heap Sort", heap_sort),
+            ("Radix Sort",radix_sort)
         ]
 
         resultados = []
@@ -393,6 +396,76 @@ def build_max_heap(lista:list, modo:bool) -> int:
         comps += max_heapify(lista, i, tamanho, modo)
     
     return comps
+
+# Algoritmo Extra [Radix sort]
+
+def radix_sort(lista, mode=True):
+    """Algoritmo de ordenação Radix Sort
+
+    Args:
+        lista (list): Lista de números inteiros a ser ordenada
+        mode (bool, opcional): Ignorado neste algoritmo. Mantido para compatibilidade
+    Returns:
+        int: Retorna 0, pois o Radix Sort não realiza comparações diretas entre elementos
+    """
+
+    # maior numero da lista para saber qnts digitos precisa
+    maximo = max(lista) 
+
+    # inicia expoente na casa da unidade
+    exp = 1
+
+    # continua enquanto tievr digitos a serem processados
+    while maximo // exp > 0:         # para apos o mais signif do max
+        ordenacaoPorContagem(lista, exp)
+        # multiplica expoente por 10 -> passa pra proxima unidade
+        exp *= 10
+
+    return 0    # não faz comparações
+
+def ordenacaoPorContagem(lista, exp):
+    """Auxiliar do Radix Sort: ordenação por contagem de dígitos
+
+    Args:
+        lista (list): Lista de números inteiros a ser ordenada parcialmente
+        exp (int): Expoente que indica a casa decimal atual (unidade, dezena, centena, etc.)
+    Returns:
+        None: Esta função modifica a lista original diretamente e não retorna valor
+    """
+
+    n = len(lista)
+
+    # Cria uma lista de saída temporária com o mesmo tamanho da original.
+    saida = [0] * n
+
+    # Cria uma lista de ocorrencia de (0 - 9)
+    contagem = [0] * 10
+
+    # percorre a lista e conta a ocorrência de cada dígito 
+    for i in range(n):
+        indice = (lista[i] // exp)          # descarta os digitos a direta do exp
+        contagem[int(indice % 10)] += 1     # pega o resto da divisao (% 10) para pegar o digito a direita
+
+    # contagem vai ser uma lista que cada posição tem o digito final dele
+    # a partir do segundo elemento, cada um é a soma dele e o anterior 
+    #  lista que responde "Quantos?" em uma lista que responde "Até onde?"
+    for i in range(1, 10):
+        contagem[i] += contagem[i-1]
+    
+
+    # Percorre a lista de entrada de trás para frente para manter a estabilidade
+    i = n - 1
+    while i >= 0:
+        indice = (lista[i] // exp)
+        # coloca o numero na posição correta na saida
+        saida[contagem[int(indice % 10)] - 1] = lista[i]
+        # decrementa a contagem para o próximo número com o mesmo dígito
+        contagem[int(indice % 10)] -= 1
+        i -= 1
+
+    # copia lista de saida para a lista original
+    for i in range(n):
+        lista[i] = saida[i]
 
 if __name__ == "__main__":
     main()
