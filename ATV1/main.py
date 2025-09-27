@@ -1,15 +1,25 @@
-import sys
+"""
+Atividade Prática 01 - Algoritmos de Ordenação - Estrutura de Dados 2
+
+Acadêmicos:
+    Gabriel Mancuso Bonfim  (2669498)
+    Lucas Henrique Motta    (2669730)
+
+Orientador:
+    Prof. Dr. Rafael Gomes Mantovani
+"""
+
+from sys import argv
 from time import time
 from random import randint as rdi
 
-
 def main():
-    if len(sys.argv) != 3:
+    if len(argv) != 3:
         print("\033[1;91mERRO\033[1;30m\nO comando de execução deve ser\033[m: python main.py <arq_entrada> <arq_saida>")
         return
 
-    arq_input = sys.argv[1]
-    arq_output = sys.argv[2]
+    arq_input = argv[1]
+    arq_output = argv[2]
 
     try:
         with open(arq_input, 'r') as arq:
@@ -30,6 +40,7 @@ def main():
             print(f"\033[1;91mERRO\033[1;30m\nO arquivo '{arq_input}' possui mais de duas linhas (Arquivo fora do padrão).\033[m")
             return
         
+        # verificando se o valor de elementos da lista é <= 0
         n = int(linhas[0])
         if n <= 0:
             print(f"\033[1;91mERRO\033[1;30m\nO número de elementos deve ser maior que zero.\033[m")
@@ -67,7 +78,7 @@ def main():
 
         resultados = []
 
-        # percorre lista de metodos e coloca as respostas
+        # percorrendo lista de métodos e colocando as respostas
         for nome, funcao in metodos:
             lista_copia = lista.copy()
             t0 = time()
@@ -79,7 +90,7 @@ def main():
             tempo = (t1 - t0) * 1000
             resultados.append((nome, lista_copia, comparacoes, tempo))
 
-        # escrevendo no arq de saida
+        # escrevendo no arquivo de saida
         with open(arq_output, "w") as arq:
             for nome, lista_ord, comp, tempo in resultados:
                 cabecalho = f"{nome:<15} |   {lista_ord}   | {comp:>5} -> Comp | {tempo:>5.3f}ms"
@@ -87,6 +98,7 @@ def main():
                 arq.write(linha + "\n")
                 arq.write(cabecalho + "\n")
             arq.write(linha + "\n")
+
         print(f"\033[1;92mSUCESSO\033[1;30m\nResultados salvos em '{arq_output}'.\033[m")
 
     except Exception as e:
@@ -181,7 +193,7 @@ def insertion_sort(lista:list, modo:bool=True) -> int:
 
     return comps
 
-# Algoritmos de Ordenação recursivos
+# Algoritmos de Ordenação Recursivos
 
 def merge_sort(lista:list, inicio:int, fim:int, modo:bool=True) -> int:
     """Algoritmo de ordenação por mistura
@@ -399,7 +411,7 @@ def build_max_heap(lista:list, modo:bool) -> int:
 
 # Algoritmo Extra [Radix sort]
 
-def radix_sort(lista, mode=True):
+def radix_sort(lista, mode=True) -> int:
     """Algoritmo de ordenação Radix Sort
 
     Args:
@@ -423,47 +435,43 @@ def radix_sort(lista, mode=True):
 
     return 0    # não faz comparações
 
-def ordenacaoPorContagem(lista, exp):
+def ordenacaoPorContagem(lista, exp) -> None:
     """Auxiliar do Radix Sort: ordenação por contagem de dígitos
 
     Args:
         lista (list): Lista de números inteiros a ser ordenada parcialmente
         exp (int): Expoente que indica a casa decimal atual (unidade, dezena, centena, etc.)
-    Returns:
-        None: Esta função modifica a lista original diretamente e não retorna valor
     """
 
     n = len(lista)
 
-    # Cria uma lista de saída temporária com o mesmo tamanho da original.
+    # criando lista de saída temporária com o mesmo tamanho da original.
     saida = [0] * n
 
-    # Cria uma lista de ocorrencia de (0 - 9)
+    # criando lista de ocorrencia de (0 - 9)
     contagem = [0] * 10
 
-    # percorre a lista e conta a ocorrência de cada dígito 
+    # percorrendo a lista e conta a ocorrência de cada dígito 
     for i in range(n):
-        indice = (lista[i] // exp)          # descarta os digitos a direta do exp
+        indice = (lista[i] // exp)          # descarta os digitos na direta do exp
         contagem[int(indice % 10)] += 1     # pega o resto da divisao (% 10) para pegar o digito a direita
 
     # contagem vai ser uma lista que cada posição tem o digito final dele
     # a partir do segundo elemento, cada um é a soma dele e o anterior 
-    #  lista que responde "Quantos?" em uma lista que responde "Até onde?"
     for i in range(1, 10):
         contagem[i] += contagem[i-1]
     
-
-    # Percorre a lista de entrada de trás para frente para manter a estabilidade
+    # percorrendo a lista de entrada de tras pra frente para manter a estabilidade
     i = n - 1
     while i >= 0:
         indice = (lista[i] // exp)
-        # coloca o numero na posição correta na saida
+        # colocando o numero na posição correta na saida
         saida[contagem[int(indice % 10)] - 1] = lista[i]
-        # decrementa a contagem para o próximo número com o mesmo dígito
+        # decrementando contagem para o próximo número com o mesmo dígito
         contagem[int(indice % 10)] -= 1
         i -= 1
 
-    # copia lista de saida para a lista original
+    # copiando a lista de saida para a lista original
     for i in range(n):
         lista[i] = saida[i]
 
