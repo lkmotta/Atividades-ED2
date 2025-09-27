@@ -18,51 +18,56 @@ def main():
         print("\033[1;91mERRO\033[1;30m\nO comando de execução deve ser\033[m: python main.py <arq_entrada> <arq_saida>")
         return
 
-    arq_input = argv[1]
-    arq_output = argv[2]
+    arq_entrada = argv[1]
+    arq_saida = argv[2]
 
     try:
-        with open(arq_input, 'r') as arq:
+        with open(arq_entrada, 'r') as arq:
             data = arq.read()
 
         # verificando se o arquivo está vazio
         if not data.strip():
-            print(f"\033[1;91mERRO\033[1;30m\nO arquivo '{arq_input}' está vazio.\033[m")
+            print(f"\033[1;91mERRO\033[1;30m\nO arquivo '{arq_entrada}' está vazio.\033[m")
+            return
+        
+        linhas = data.splitlines()
+
+        # verificando padrão do arquivo de entrada        
+        if(len(linhas) > 2): 
+            print(f"\033[1;91mERRO\033[1;30m\nO arquivo '{arq_entrada}' possui mais de duas linhas (Arquivo fora do padrão).\033[m")
+            return
+
+        if len(linhas) < 2:
+            print(f"\033[1;91mERRO\033[1;30m\nA segunda linha do arquivo '{arq_entrada}' deve conter uma letra válida: C, D ou R.\033[m")
             return
         
         # verificando se a primeira linha contém um numero válido
-        linhas = data.splitlines()
-        if(not linhas[0].isdigit()):
-            print(f"\033[1;91mERRO\033[1;30m\nA primeira linha do arquivo '{arq_input}' deve conter um número inteiro válido.\033[m")
-            return
-        
-        if(len(linhas) > 2): 
-            print(f"\033[1;91mERRO\033[1;30m\nO arquivo '{arq_input}' possui mais de duas linhas (Arquivo fora do padrão).\033[m")
+        try:
+            primeira = linhas[0].strip()
+            n = int(primeira)
+        except (IndexError, ValueError):
+            print(f"\033[1;91mERRO\033[1;30m\nA primeira linha do arquivo '{arq_entrada}' deve conter um número inteiro válido.\033[m")
             return
         
         # verificando se o valor de elementos da lista é <= 0
-        n = int(linhas[0])
         if n <= 0:
             print(f"\033[1;91mERRO\033[1;30m\nO número de elementos deve ser maior que zero.\033[m")
             return
         
-        # lendo a letra do modo
-        if len(linhas) < 2:
-            print(f"\033[1;91mERRO\033[1;30m\nA segunda linha do arquivo '{arq_input}' deve conter uma letra válida: C, D ou R.\033[m")
+        # verificado a letra do modo
+        modo = linhas[1].strip().upper()
+        if len(modo) != 1 or modo not in ('C','D','R'):
+            print(f"\033[1;91mERRO\033[1;30m\nA segunda linha do arquivo '{arq_entrada}' deve conter uma letra válida: C, D ou R.\033[m")
             return
-        
-        letra_modo = linhas[1].strip().upper()
+        letra_modo = modo
         
         # gerando a lista de números
-        if letra_modo in 'C':
+        if letra_modo == 'C':
             lista = list(range(1, n+1))
-        elif letra_modo in 'D':
+        elif letra_modo == 'D':
             lista = list(range(n, 0, -1))
-        elif letra_modo in 'R':
+        else: # só sobra modo 'R'
             lista = [rdi(0, 32000) for _ in range(n)] # _ é uma variável descartável
-        else:
-            print(f"\033[1;91mERRO\033[1;30m\nA segunda linha do arquivo '{arq_input}' deve conter uma letra válida: C, D ou R.\033[m")
-            return
         
         print(f"\nLista inicial ({letra_modo}): {lista}\n")
 
@@ -91,7 +96,7 @@ def main():
             resultados.append((nome, lista_copia, comparacoes, tempo))
 
         # escrevendo no arquivo de saida
-        with open(arq_output, "w") as arq:
+        with open(arq_saida, "w") as arq:
             for nome, lista_ord, comp, tempo in resultados:
                 cabecalho = f"{nome:<15} |   {lista_ord}   | {comp:>5} -> Comp | {tempo:>5.3f}ms"
                 linha = "=" * (len(cabecalho))
@@ -99,10 +104,11 @@ def main():
                 arq.write(cabecalho + "\n")
             arq.write(linha + "\n")
 
-        print(f"\033[1;92mSUCESSO\033[1;30m\nResultados salvos em '{arq_output}'.\033[m")
+        print(f"\033[1;92mSUCESSO\033[1;30m\nResultados salvos em '{arq_saida}'.\033[m")
 
     except Exception as e:
         print(f"\033[1;91mERRO\033[1;30m\n{e}\033[m")
+
 
 # Algoritmos de Ordenação
 
@@ -179,15 +185,19 @@ def insertion_sort(lista:list, modo:bool=True) -> int:
         k = i-1
 
         if modo:
-            while (k >= 0) and (aux < lista[k]):
-                comps+=1
+            while k >= 0:
+                comps += 1
+                if not (aux < lista[k]):
+                    break
                 lista[k+1] = lista[k]
-                k-=1
+                k -= 1
         else:
-            while (k >= 0) and (aux > lista[k]):
-                comps+=1
+            while k >= 0:
+                comps += 1
+                if not (aux > lista[k]):
+                    break
                 lista[k+1] = lista[k]
-                k-=1
+                k -= 1
 
         lista[k+1] = aux
 
@@ -242,7 +252,7 @@ def merge(vetor:list, inicio:int, meio:int, fim:int, modo:bool) -> int:
         if compara(vetor[p1], vetor[p2]):
             v_aux.append(vetor[p1])
             p1+=1
-        else: 
+        else:
             v_aux.append(vetor[p2])
             p2+=1
 
@@ -429,13 +439,13 @@ def radix_sort(lista, mode=True) -> int:
 
     # continua enquanto tievr digitos a serem processados
     while maximo // exp > 0:         # para apos o mais signif do max
-        ordenacaoPorContagem(lista, exp)
+        ordenacao_por_contagem(lista, exp)
         # multiplica expoente por 10 -> passa pra proxima unidade
         exp *= 10
 
     return 0    # não faz comparações
 
-def ordenacaoPorContagem(lista, exp) -> None:
+def ordenacao_por_contagem(lista, exp) -> None:
     """Auxiliar do Radix Sort: ordenação por contagem de dígitos
 
     Args:
