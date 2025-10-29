@@ -4,13 +4,13 @@ def remocaoComReuso(arquivo, chave):
 *  procurar a chave no arquivo
 * s1: não achou, não faz nada (acabou)
 * s2: se achou, temos que remover
-	-  RRN da linha onde sera removido 
-	#invalidar o registro
-	linha[0] = * # invalidando
-      	linha[1:3] = valor do recente
-	- no header, variável recente recebe o valor de RRN linha
-	- decrementar a quantidade de registros do arquivo
-	- atualizar o cabecalho
+	-	RRN da linha onde sera removido 
+	-	invalidar o registro
+	-	linha[0] = * # invalidando
+    -	linha[1:3] = valor do recente
+	- 	no header, variável recente recebe o valor de RRN linha
+	- 	decrementar a quantidade de registros do arquivo
+	- 	atualizar o cabecalho
 ____________________________________________________________
 
 def insercaoComReuso(arquivo, registro):

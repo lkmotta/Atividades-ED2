@@ -75,13 +75,14 @@ def remocaoComReuso(arquivo, chave) -> bool:
         arquivo (str): caminho para o arquivo com estrutura de cabeçalhos (metadados)
         chave (str): chave do registro a ser removido
     """
-    removeu = True
 
     # extraindo header do arquivo
     header = le_header(arquivo)
     if(header == {}):
         print(f"\nERRO: Arquivo '{arquivo}' não possui header ou é inválido.")
         return False
+
+    removeu = False
 
     try:
         with open(arquivo, "r+") as arq:
@@ -90,7 +91,7 @@ def remocaoComReuso(arquivo, chave) -> bool:
 
             for pos, linha in enumerate(linhas):
                 if linha.startswith(chave):
-                    # invalida registro com *, marca o recente (pilha lógica) e delimita campo, depois reescreve o resto da linha
+                    # invalida registro com *, marca o recente (pilha lógica) e delimita campo, depois escreve o resto da linha
                     arq.write(f"*{header['recente']}|{linha[len(str(header['recente'])) + 2:]}") # +2 por causa do '*' e '|'
                     header['recente'] = pos
                     header['cont'] -= 1
@@ -121,12 +122,11 @@ def insercaoComReuso(arquivo, registro) -> bool:
     
     # verificando se a chave do registro ja está no arquivo
     try:
-        campos_registro = registro.split('|')
-        chave_registro = campos_registro[0]   # primeiro campo é a chave
+        chave_registro = registro.split('|')[0]
         with open(arquivo, "r") as arq:
             for linha in arq.readlines():
                 if linha.startswith(chave_registro):
-                    print("\nChave do registro ({chave}) já existe no arquivo.")
+                    print(f"\nChave do registro ({chave_registro}) já existe no arquivo.")
                     return False
 
     except Exception as erro:
