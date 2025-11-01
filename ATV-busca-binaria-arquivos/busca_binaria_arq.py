@@ -40,7 +40,7 @@ def buscaBinaria(arq, chave : str, registro : str='') -> bool:
     Args:
         arq: arquivo com os registros já ordenados 
         chave: a chave do registro que procuramos
-        regi
+        registro: objeto para retornar o registro encontrado
     Returns:
         true: se encontrar o registro e salvar o conteúdo corretamente em reg 
         false: se não encontrar o registro, e der algum erro durante o processo de leitura 
