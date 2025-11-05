@@ -1,7 +1,8 @@
 """ 
 Atividade Prática 2- Keysorting - Estrutura de Dados 2
-Acadêmico:
-    Lucas Henrique Motta (2669730)
+Acadêmicos:
+    Gabriel Mancuso Bonfim  (2669498)
+    Lucas Henrique Motta    (2669730)
 Orientador:
     Prof. Dr. Rafael Gomes Mantovani
 """
