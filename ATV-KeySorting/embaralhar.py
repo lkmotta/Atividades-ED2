@@ -23,10 +23,10 @@ def embaralha_chaves(input_csv, output_txt):
         txt_saida.write(header + '\n')  # novo header
 
         # escrevendo registros
-        for i, row in enumerate(linhas):
+        for pos, linha in enumerate(linhas):
             key = random.randint(0, registros -1)
             # juntando os campos e delimitando com |
-            nova_linha = f"{key}|{'|'.join(row)}\n"
+            nova_linha = f"{key}|{'|'.join(linha)}\n"
             txt_saida.write(nova_linha)
 
 input_csv = input("Digite o caminho do arquivo CSV: ").strip()
