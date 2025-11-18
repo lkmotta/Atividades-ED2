@@ -1,0 +1,5 @@
+SIZE=33 N=4 RECENTE=-1
+YU-GI-OH!|Anime|Cartas
+ONEPIECE|Anime|Pirata
+NARUTO|Anime|Ninja
+JOJOSBIZARREADVENTURE|Anime|Stand
