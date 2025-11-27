@@ -1,0 +1,2 @@
+artists || artists & year
+The Strokes, Franz Ferdinand, 2005
