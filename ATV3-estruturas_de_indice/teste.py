@@ -1,249 +1,323 @@
 """
-Atividade 3/4 - Indexação Secundária - Estrutura de Dados 2
-Descrição: Programa para indexação e busca em base de dados do Spotify.
-Arquitetura: Índice Secundário -> Chave Primária (ID) -> Índice Primário -> RRN
+Atividade 3 - Indexação Secundária - Estrutura de Dados 2
+
+Acadêmicos:
+    Gabriel Mancuso Bonfim  (2669498)
+    Lucas Henrique Motta    (2669730)
+
+Orientador:
+    Prof. Dr. Rafael Gomes Mantovani
 """
 
-from sys import argv
-import os
+import sys
 import csv
-import re 
+import io
 
-# --- Classe Musica ---
-class Musica:
-    def __init__(
-            self, RRN, id, name, album, album_id, artists, artist_ids,
-            track_number, disc_number, explicit, danceability, energy,
-            key, loudness, mode, speechiness, acousticness,
-            instrumentalness, liveness, valence, tempo, duration_ms,
-            time_signature, year, release_date
-        ):
-        self.RRN = RRN 
-        self.id = id
-        self.name = name
-        self.album = album
-        self.album_id = album_id
-        self.artists = artists
-        self.artist_ids = artist_ids
-        self.track_number = track_number
-        self.disc_number = disc_number
-        self.explicit = explicit
-        self.danceability = danceability
-        self.energy = energy
-        self.key = key
-        self.loudness = loudness
-        self.mode = mode
-        self.speechiness = speechiness
-        self.acousticness = acousticness
-        self.instrumentalness = instrumentalness
-        self.liveness = liveness
-        self.valence = valence
-        self.tempo = tempo
-        self.duration_ms = duration_ms
-        self.time_signature = time_signature
-        self.year = year
-        self.release_date = release_date
+# =============================================================================
+# CLASSES DE ESTRUTURA DE DADOS (ÍNDICES)
+# =============================================================================
 
-    def __str__(self):
-        return (f"{self.id},{self.name},{self.album},{self.album_id},{self.artists},"
-                f"{self.artist_ids},{self.track_number},{self.disc_number},{self.explicit},"
-                f"{self.danceability},{self.energy},{self.key},{self.loudness},"
-                f"{self.mode},{self.speechiness},{self.acousticness},{self.instrumentalness},"
-                f"{self.liveness},{self.valence},{self.tempo},{self.duration_ms},"
-                f"{self.time_signature},{self.year},{self.release_date}")
-
-# --- Classe IndicePrimario  ---
 class IndicePrimario:
+    """
+    Mantém o índice primário em Memória RAM.
+    Mapeia: ID (string) -> Byte Offset (int)
+    """
     def __init__(self):
-        # Mapeia: ID (String) -> RRN 
-        self.indices = {}
+        # Lista de tuplas: [(id_track, offset), ...]
+        self.tabela = []
 
-    def adicionar_musica(self, id_musica, rrn):
-        self.indices[id_musica] = rrn
+    def inserir(self, id_musica, pos_no_arquivo):
+        self.tabela.append((id_musica, pos_no_arquivo))
 
-    def buscar_rrn(self, id_musica):
-        return self.indices.get(id_musica, None)
+    def ordenar(self):
+        """Ordena a tabela pelo ID para permitir busca binária."""
+        # Ordena pela chave (posição 0 da tupla)
+        self.tabela.sort(key=lambda x: x[0])
 
-# --- Classe IndiceSecundario  ---
-class IndiceSecundario:
-    def __init__(self):
-        self.indices = {} 
-    
-    def cria_indice(self, campo, lista_musicas) -> dict:
+    def buscar(self, id_busca):
         """
-        Cria um índice secundário que mapeia Valor -> Lista de IDs (Chaves Primárias)
+        Realiza Busca Binária no índice primário.
+        Retorno: O byte_offset (int) ou None se não achar.
         """
-        if campo in self.indices:
-            return self.indices[campo]
+        inicio = 0
+        fim = len(self.tabela) - 1
 
-        indice = {}
-        
-        for musica in lista_musicas:
-            try:
-                valor_campo = getattr(musica, campo)
-            except AttributeError:
-                print(f"Erro: Atributo '{campo}' não existe na classe Musica.")
-                return {}
+        while inicio <= fim:
+            meio = (inicio + fim) // 2
+            chave_atual = self.tabela[meio][0]
 
-            valor_campo = str(valor_campo).strip()
-            # Limpeza de caracteres de lista
-            valor_campo = valor_campo.strip("[]'")
-
-            if valor_campo not in indice:
-                indice[valor_campo] = []
-            
-            # guardamos o ID da música, não o RRN direto
-            indice[valor_campo].append(musica.id)
-        
-        self.indices[campo] = indice
-        return indice
-    
-    def buscar_ids(self, campo, valor) -> list:
-        """Retorna lista de IDs para um valor"""
-        if campo not in self.indices:
-            return []
-        
-        valor_str = str(valor).strip()
-        if valor_str in self.indices[campo]:
-            return self.indices[campo][valor_str]
-        return []
-
-
-# --- Função Principal ---
-def main():
-    if len(argv) != 4:
-        print("\033[1;91mERRO\033[1;30m\nUso: python main.py <arq_dados> <arq_consulta> <arq_saida>")
-        return
-
-    arq_dados = argv[1]
-    arq_consulta = argv[2]
-    arq_saida = argv[3]
-
-    if not os.path.isfile(arq_dados):
-        print(f"O arquivo de dados '{arq_dados}' não foi encontrado.")
-        return
-
-    # Inicializa Índice Primário
-    indice_primario = IndicePrimario()
-    lista_musicas = []
-
-    # Leitura do CSV
-    try:
-        print("Carregando arquivo de dados e criando Índice Primário...")
-        arquivo_csv = open(arq_dados, encoding="utf-8", newline='')
-        data = csv.reader(arquivo_csv, delimiter=",")
-        
-        header = next(data, None) 
-        
-        for pos, linha in enumerate(data):
-            if not linha: continue 
-
-            musica = Musica(
-                RRN=pos, # Endereço Físico/Lógico
-                id=linha[0], # Chave Primária
-                name=linha[1], album=linha[2], album_id=linha[3],
-                artists=linha[4], artist_ids=linha[5], 
-                track_number=linha[6], disc_number=linha[7],
-                explicit=linha[8], danceability=linha[9],
-                energy=linha[10], key=linha[11],
-                loudness=linha[12], mode=linha[13],
-                speechiness=linha[14], acousticness=linha[15],
-                instrumentalness=linha[16], liveness=linha[17],
-                valence=linha[18], tempo=linha[19], duration_ms=linha[20],
-                time_signature=linha[21], year=linha[22], release_date=linha[23]
-            )
-            lista_musicas.append(musica)
-            
-            # Adiciona ao Índice Primário (ID -> RRN)
-            indice_primario.adicionar_musica(musica.id, musica.RRN)
-        
-        arquivo_csv.close()
-        print(f"Total de músicas carregadas: {len(lista_musicas)}")
-
-    except Exception as erro:
-        print(f"ERRO na leitura dos dados: {erro}")
-        return
-
-    # Processamento da Consulta
-    try:
-        if not os.path.isfile(arq_consulta):
-            print(f"Arquivo de consulta '{arq_consulta}' não encontrado.")
-            return
-
-        with open(arq_consulta, 'r', encoding='utf-8') as f:
-            linhas_query = f.readlines()
-        
-        if len(linhas_query) < 2:
-            print("Arquivo de consulta inválido.")
-            return
-
-        linha_campos = linhas_query[0].strip()
-        linha_valores = linhas_query[1].strip()
-
-        campos = re.split(r' \|\| | & ', linha_campos)
-        operadores = re.findall(r' \|\| | & ', linha_campos)
-        operadores = [op.strip() for op in operadores]
-        valores = [v.strip() for v in linha_valores.split(',')]
-
-        if len(campos) != len(valores):
-            print(f"ERRO: A query possui {len(campos)} campos mas {len(valores)} valores.")
-            with open(arq_saida, 'w', encoding='utf-8') as f_out:
-                f_out.write("ERRO: Inconsistencia entre campos e valores.")
-            return
-
-    except Exception as e:
-        print(f"Erro ao processar query: {e}")
-        return
-
-    # Busca Secundária (Retorna IDs)
-    gerenciador_secundario = IndiceSecundario()
-    
-    campo_inicial = campos[0]
-    valor_inicial = valores[0]
-    
-    gerenciador_secundario.cria_indice(campo_inicial, lista_musicas)
-    
-    # OBS: Agora trabalhamos com Sets de IDs, não de RRNs
-    ids_acumulados = set(gerenciador_secundario.buscar_ids(campo_inicial, valor_inicial))
-
-    for i in range(len(operadores)):
-        op_atual = operadores[i]
-        proximo_campo = campos[i+1]
-        proximo_valor = valores[i+1]
-        
-        gerenciador_secundario.cria_indice(proximo_campo, lista_musicas)
-        ids_novos = set(gerenciador_secundario.buscar_ids(proximo_campo, proximo_valor))
-
-        if op_atual == '&':
-            ids_acumulados = ids_acumulados.intersection(ids_novos)
-        elif op_atual == '||':
-            ids_acumulados = ids_acumulados.union(ids_novos)
-
-    # Resolução Final: IDs -> RRNs -> Objetos Musica
-    # Aqui usamos o Índice Primário para localizar os registros
-    lista_musicas_final = []
-    
-    for id_musica in ids_acumulados:
-        rrn = indice_primario.buscar_rrn(id_musica)
-        if rrn is not None:
-            lista_musicas_final.append(lista_musicas[rrn])
-
-    # Escrita
-    try:
-        with open(arq_saida, 'w', encoding='utf-8') as f_out:
-            if not lista_musicas_final:
-                f_out.write("Nenhum resultado foi encontrado!") 
+            if chave_atual == id_busca:
+                return self.tabela[meio][1] # Retorna o Offset
+            elif chave_atual < id_busca:
+                inicio = meio + 1
             else:
-                # Ordenar por RRN (opcional, para consistência visual)
-                lista_musicas_final.sort(key=lambda x: x.RRN)
-                
-                for musica in lista_musicas_final:
-                    f_out.write(str(musica) + "\n")
+                fim = meio - 1
         
-        print(f"Busca concluída. Resultados salvos em '{arq_saida}'.")
+        return None
 
-    except Exception as erro:
-        print(f"Erro ao escrever arquivo de saída: {erro}")
+
+class IndiceSecundario:
+    """
+    Mantém um índice secundário (ex: Artista ou Ano).
+    Mapeia: Valor do Campo (string) -> ID da Faixa (string)
+    """
+    def __init__(self, nome_campo):
+        self.nome_campo = nome_campo
+        # Lista de tuplas: [(valor_campo, id_primario), ...]
+        self.tabela = []
+
+    def inserir(self, valor_campo, id_primario):
+        # Armazena tudo como string minúscula para facilitar busca case-insensitive
+        # Mas mantém o ID original
+        if valor_campo:
+            # Remove aspas extras que o CSV pode ter deixado e espaços
+            val_limpo = valor_campo.strip().replace('"', '').replace("'", "")
+            self.tabela.append((val_limpo.upper(), id_primario))
+
+    def ordenar(self):
+        """Ordena a tabela pelo valor do campo (chave secundária)."""
+        self.tabela.sort(key=lambda x: x[0])
+
+    def buscar(self, chave_busca):
+        """
+        Realiza Busca Binária para encontrar TODOS os IDs associados à chave.
+        Retorno: Uma lista de IDs [id1, id2, ...]
+        """
+        chave_busca = chave_busca.strip().replace('"', '').replace("'", "").upper()
+        
+        inicio = 0
+        fim = len(self.tabela) - 1
+        encontrou_indice = -1
+
+        # 1. Busca binária para achar UMA ocorrência
+        while inicio <= fim:
+            meio = (inicio + fim) // 2
+            chave_atual = self.tabela[meio][0]
+
+            if chave_atual == chave_busca:
+                encontrou_indice = meio
+                break # Achamos um, paramos o loop principal
+            elif chave_atual < chave_busca:
+                inicio = meio + 1
+            else:
+                fim = meio - 1
+
+        if encontrou_indice == -1:
+            return []
+
+        # 2. Expansão para encontrar duplicatas (já que artistas têm várias músicas)
+        ids_encontrados = []
+        
+        # Expande para a esquerda
+        i = encontrou_indice
+        while i >= 0 and self.tabela[i][0] == chave_busca:
+            ids_encontrados.append(self.tabela[i][1])
+            i -= 1
+        
+        # Expande para a direita
+        i = encontrou_indice + 1
+        while i < len(self.tabela) and self.tabela[i][0] == chave_busca:
+            ids_encontrados.append(self.tabela[i][1])
+            i += 1
+
+        return list(set(ids_encontrados)) # Remove duplicatas exatas se houver
+
+
+# =============================================================================
+# PROCESSADOR (LÓGICA PRINCIPAL)
+# =============================================================================
+
+class ProcessadorDeConsultas:
+    def __init__(self, arquivo_dados):
+        self.arquivo_dados = arquivo_dados
+        self.idx_primario = IndicePrimario()
+        self.idxs_secundarios = {}
+        
+        # Mapeamento de nomes de colunas para índices do CSV (Baseado no código do seu colega e PDF)
+        self.mapa_colunas = {
+            "id": 0, "name": 1, "album": 2, "album_id": 3, 
+            "artists": 4, "artist_ids": 5, "track_number": 6, 
+            "disc_number": 7, "explicit": 8, "danceability": 9,
+            "energy": 10, "key": 11, "loudness": 12, "mode": 13,
+            "speechiness": 14, "acousticness": 15, "instrumentalness": 16,
+            "liveness": 17, "valence": 18, "tempo": 19, "duration_ms": 20,
+            "time_signature": 21, "year": 22, "release_date": 23
+        }
+
+    def criar_indices(self, campos_para_indexar):
+        print(f"Criando índices para: {campos_para_indexar}...")
+        
+        for campo in campos_para_indexar:
+            if campo not in self.idxs_secundarios:
+                self.idxs_secundarios[campo] = IndiceSecundario(campo)
+
+        try:
+            with open(self.arquivo_dados, 'r', encoding='utf-8') as f:
+                # Pula cabeçalho
+                f.readline()
+                
+                while True:
+                    offset_atual = f.tell()
+                    linha = f.readline()
+                    if not linha:
+                        break
+                    
+                    # Parse da linha CSV respeitando aspas (ex: "Music, The")
+                    # Usamos o módulo csv para parsear apenas esta linha string
+                    try:
+                        dados = next(csv.reader([linha]))
+                    except StopIteration:
+                        continue
+                    
+                    # Se a linha estiver quebrada/incompleta, ignora
+                    if len(dados) < 24:
+                        continue
+
+                    id_track = dados[0]
+                    
+                    # 1. Inserir no Índice Primário (ID -> Offset)
+                    self.idx_primario.inserir(id_track, offset_atual)
+
+                    # 2. Inserir nos Índices Secundários (Valor -> ID)
+                    for campo in campos_para_indexar:
+                        idx_col = self.mapa_colunas.get(campo)
+                        if idx_col is not None:
+                            valor = dados[idx_col]
+                            
+                            # Tratamento especial para o campo 'artists' que vem como list string "['Queen']"
+                            if campo == 'artists':
+                                # Remove colchetes e aspas e quebra por vírgula se tiver múltiplos
+                                valor_limpo = valor.replace("[", "").replace("]", "").replace("'", "")
+                                nomes = valor_limpo.split(",")
+                                for nome in nomes:
+                                    self.idxs_secundarios[campo].inserir(nome.strip(), id_track)
+                            else:
+                                self.idxs_secundarios[campo].inserir(valor, id_track)
+        
+            # ORDENAÇÃO (CRUCIAL)
+            print("Ordenando Índice Primário...")
+            self.idx_primario.ordenar()
+            for campo, idx in self.idxs_secundarios.items():
+                print(f"Ordenando Índice Secundário ({campo})...")
+                idx.ordenar()
+                
+        except FileNotFoundError:
+            print(f"ERRO: Arquivo {self.arquivo_dados} não encontrado.")
+            sys.exit(1)
+
+    def recuperar_registro(self, byte_offset):
+        with open(self.arquivo_dados, 'r', encoding='utf-8') as f:
+            f.seek(byte_offset)
+            return f.readline().strip()
+
+    # processa a query
+    def executar(self, arq_query, arq_saida):
+        # 1. Ler a Query
+        if not self._ler_query(arq_query):
+            return
+
+        # 2. Identificar operador e campos
+        linha_criterios = self.query_criterios
+        linha_valores = self.query_valores
+        
+        operador = None
+        if '&' in linha_criterios:
+            operador = '&'
+            campos = [c.strip() for c in linha_criterios.split('&')]
+            valores = [v.strip() for v in linha_valores.split(',')]
+        elif '||' in linha_criterios:
+            operador = '||'
+            campos = [c.strip() for c in linha_criterios.split('||')]
+            # Assumindo que no OR os valores também são separados por vírgula na mesma ordem
+            # Se for "artist || year", valores deve ser "Queen, 2020"
+            # O split da string de valores deve considerar vírgulas dentro de aspas? 
+            # Simplificação: split por vírgula.
+            valores = [v.strip() for v in linha_valores.split(',')]
+        else:
+            # Consulta Simples
+            campos = [linha_criterios.strip()]
+            valores = [linha_valores.strip()]
+
+        # 3. Criar os índices necessários
+        # Verifica se campos existem no mapa
+        for c in campos:
+            if c not in self.mapa_colunas:
+                print(f"ERRO: Campo '{c}' inválido ou não suportado.")
+                return
+        
+        self.criar_indices(campos)
+
+        # 4. Realizar buscas
+        sets_de_ids = []
+        
+        for i, campo in enumerate(campos):
+            valor_buscado = valores[i]
+            # Busca no índice secundário -> retorna lista de IDs
+            ids = self.idxs_secundarios[campo].buscar(valor_buscado)
+            sets_de_ids.append(set(ids))
+
+        # 5. Aplicar Lógica Booleana
+        resultado_ids = set()
+        if not sets_de_ids:
+            resultado_ids = set()
+        elif operador == '&':
+            # Interseção: começa com o primeiro set e faz intersection com os demais
+            resultado_ids = sets_de_ids[0]
+            for s in sets_de_ids[1:]:
+                resultado_ids = resultado_ids.intersection(s)
+        elif operador == '||':
+            # União
+            for s in sets_de_ids:
+                resultado_ids = resultado_ids.union(s)
+        else:
+            # Simples
+            resultado_ids = sets_de_ids[0]
+
+        # 6. Recuperar dados finais e Salvar
+        with open(arq_saida, 'w', encoding='utf-8') as f_out:
+            lista_ids = list(resultado_ids)
+            if not lista_ids:
+                f_out.write("Nenhum resultado foi encontrado!\n")
+            else:
+                # Opcional: ordenar a saída para ficar bonito
+                lista_ids.sort()
+                
+                for id_track in lista_ids:
+                    # Busca offset no primário
+                    offset = self.idx_primario.buscar(id_track)
+                    if offset is not None:
+                        registro = self.recuperar_registro(offset)
+                        f_out.write(registro + "\n")
+        
+        print(f"Consulta finalizada. {len(lista_ids)} registros encontrados.")
+
+
+    def _ler_query(self, caminho):
+        try:
+            with open(caminho, 'r', encoding='utf-8') as f:
+                linhas = f.readlines()
+                if len(linhas) < 2:
+                    print("ERRO: Arquivo de query inválido (linhas insuficientes).")
+                    return False
+                self.query_criterios = linhas[0].strip()
+                self.query_valores = linhas[1].strip()
+                return True
+        except FileNotFoundError:
+            print(f"ERRO: Arquivo {caminho} não encontrado.")
+            return False
+
+# =============================================================================
+# MAIN
+# =============================================================================
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) != 4:
+        print("Uso: python programa.py <dados.csv> <query.txt> <saida.txt>")
+        sys.exit(1)
+
+    arq_dados = sys.argv[1]
+    arq_query = sys.argv[2]
+    arq_saida = sys.argv[3]
+
+    app = ProcessadorDeConsultas(arq_dados)
+    app.executar(arq_query, arq_saida)
