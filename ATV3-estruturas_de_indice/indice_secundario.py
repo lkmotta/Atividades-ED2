@@ -24,7 +24,7 @@ class IndicePrimario:
     mapeia: ID (string) -> byte offset (int)
     """
     def __init__(self):
-        # lista de tuplas: [(id_track, offset), ...]
+        # lista de tuplas
         self.tabela = []
 
     def inserir(self, id_musica, pos_no_arquivo):
@@ -63,7 +63,7 @@ class IndiceSecundario:
     """
     def __init__(self, nome_campo):
         self.nome_campo = nome_campo
-        # lista de tuplas: [(valor_campo, id_primario), ...]
+        # lista de tuplas
         self.tabela = []
 
     def inserir(self, valor_campo, id_primario):
@@ -215,9 +215,12 @@ class ProcessadorDeConsultas:
         linha_criterios = self.query_criterios
         linha_valores = self.query_valores
 
-        # 2. separa os criterios
-        # usa regex para separar mantendo os operadores: ['artists', '||', 'artists', '&', 'year']
-        criterios = [x.strip() for x in re.split(r'(\s*\|\|\s*|\s*&\s*)', linha_criterios) if x.strip()]
+        # 2. separa os criterios com regex
+        # separa critérios mantendo os operadores '||' e '&'
+        # também encontra operadores ou blocos de texto que não contenham '&' ou '|' e
+        # depois remove espaços em branco das partes
+        partes = re.findall(r'\|\||&|[^&|]+', linha_criterios)
+        criterios = [parte.strip() for parte in partes if parte.strip()]
         
         # separa os valores
         try:
